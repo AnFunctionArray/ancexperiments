@@ -138,7 +138,10 @@ public:
 
     // MARK: Member Functions
 
-    FilterDSPKernel() : cutoffRamper(400.0 / sampleRate), resonanceRamper(20.0)  {}
+    FilterDSPKernel() : cutoffRamper(400.0 / sampleRate), resonanceRamper(20.0)  {
+        set[0] = vDSP_create_fftsetup(9, kFFTRadix2);
+        set[1] = vDSP_create_fftsetup(9, kFFTRadix2);
+    }
 
     void init(int channelCount, double inSampleRate) {
         channelStates.resize(channelCount);
@@ -216,7 +219,7 @@ public:
             // Pass the samples through.
             int channelCount = int(inBufferListPtr->mNumberBuffers);
             //os_log(OS_LOG_DEFAULT, "nchannels %d, framecount %u", channelCount, frameCount);
-            for (int channel = 0; channel < 2; ++channel) {
+            for (int channel = 0; channel < channelCount; ++channel) {
                 /*if (inBufferListPtr->mBuffers[channel].mData ==  outBufferListPtr->mBuffers[channel].mData) {
                     continue;
                 }*/
@@ -228,16 +231,25 @@ public:
                     float* out = (float*)outBufferListPtr->mBuffers[channel].mData + frameOffset;
                     *out = *in;
                 }*/
-                if (!ffs[channel])
-                ffs[channel] = vDSP_DFT_Interleaved_CreateSetup (ffs[channel], 128, vDSP_DFT_INVERSE, vDSP_DFT_Interleaved_RealtoComplex);
-                /*dct[channel] = vDSP_DCT_CreateSetup(dct[channel], 128, vDSP_DCT_II);
-                vDSP_DCT_Execute(dct[channel], in, out);
-                const float tresh = 100.0;
-                vDSP_vthres(out, 1, &tresh, in, 1, 128);
-                dctin[channel] = vDSP_DCT_CreateSetup(dctin[channel], 128, vDSP_DCT_III);
-                vDSP_DCT_Execute(dctin[channel], in, out);
-                outBufferListPtr->mBuffers[channel].mDataByteSize = 128 * 4;*/
-                vDSP_DFT_Interleaved_Execute(ffs[channel], (DSPComplex *)in, (DSPComplex *)out);
+                //if (!ffs[channel])
+                //ffs[channel] = vDSP_DFT_Interleaved_CreateSetup (ffs[channel], 256, vDSP_DFT_INVERSE, vDSP_DFT_Interleaved_ComplextoComplex);
+                /*float tmpvect[512], tmpvect2[512], tmpvectin[512]{};
+                memcpy(tmpvectin, in, 512 * 4);
+                dct[channel] = vDSP_DCT_CreateSetup(dct[channel], 512, vDSP_DCT_II);
+                vDSP_DCT_Execute(dct[channel], tmpvectin, tmpvect);
+                //const float tresh = 100.0;
+                //vDSP_vthres(out, 1, &tresh, in, 1, 128);
+                dctin[channel] = vDSP_DCT_CreateSetup(dctin[channel], 512, vDSP_DCT_III);
+                vDSP_DCT_Execute(dctin[channel], tmpvect, tmpvect2);
+                //outBufferListPtr->mBuffers[channel].mDataByteSize = 256 * 4;
+                //float tmpvect[512];
+                //memset(out, 0, frameCount * 4);
+                //vDSP_DFT_Interleaved_Execute(ffs[channel], (DSPComplex *)in, (DSPComplex *)tmpvect);
+                /*ffs[channel] = vDSP_DFT_Interleaved_CreateSetup (ffs[channel], 128, vDSP_DFT_FORWARD, vDSP_DFT_Interleaved_ComplextoComplex);
+                vDSP_DFT_Interleaved_Execute(ffs[channel], (DSPComplex *)tmpvect, (DSPComplex *)out);*/
+                //const float divisor = 512;
+                //vDSP_svdiv(&divisor, tmpvect2, 1, out, 1, 512);
+                memcpy(out, in, frameCount * 4);
             }
             return;
         }
@@ -298,6 +310,7 @@ private:
     vDSP_DFT_Interleaved_Setup ffs[2] ={};
     vDSP_DFT_Setup dct[2] = {};
     vDSP_DFT_Setup dctin[2] = {};
+    FFTSetup set[2]{};
     unsigned counter = 0;
 public:
     static constexpr float sampleRate = 96000;

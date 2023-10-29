@@ -51,10 +51,12 @@ public class SimplePlayEngine {
     public init() {
         engine.attach(player)
 
-        guard let fileURL = Bundle(for: type(of: self)).url(forResource: "Synth", withExtension: "aif") else {
+        /*guard let fileURL = Bundle(for: type(of: self)).url(forResource: "Synth", withExtension: "aif") else {
             fatalError("\"Synth.aif\" file not found.")
         }
-        setPlayerFile(fileURL)
+        setPlayerFile(fileURL)*/
+        var hardwareFormat = engine.inputNode.outputFormat(forBus: 0);
+        engine.connect(player, to: engine.mainMixerNode, format: hardwareFormat);
 
         engine.prepare()
     }
@@ -114,9 +116,13 @@ public class SimplePlayEngine {
             scheduleEffectLoop()
         }*/
         
-        let hardwareFormat = engine.inputNode.outputFormat(forBus: 0)
-        engine.connect(engine.mainMixerNode, to: engine.outputNode, format: hardwareFormat)
-        engine.connect(engine.inputNode, to: engine.mainMixerNode, format: hardwareFormat)
+        //let hardwareFormat = engine.outputNode.outputFormat(forBus: 0)
+        //engine.disconnectNodeInput(engine.mainMixerNode)
+        //engine.connect(avAudioUnit, to: engine.outputNode, format: hardwareFormat)
+        let hardwareFormat = engine.inputNode.outputFormat(forBus: 0);
+        engine.connect(engine.inputNode, to: activeAVAudioUnit!, format: hardwareFormat);
+        //engine.connect(player, to: engine.mainMixerNode, format: hardwareFormat);
+        //engine.connect(activeAVAudioUnit!, to: engine.mainMixerNode, format: hardwareFormat);
         
         // Start the engine.
         do {
@@ -166,7 +172,7 @@ public class SimplePlayEngine {
         if isEffect {
             // Connect the player to the mixer.
             guard let format = file?.processingFormat else { fatalError("No AVAudioFile defined (processing format unavailable).") }
-            engine.connect(player, to: engine.mainMixerNode, format: format)
+            //engine.connect(player, to: engine.mainMixerNode, format: format)
         }
     }
 
@@ -189,7 +195,7 @@ public class SimplePlayEngine {
             // Break the audio unit/mixer connection
             engine.disconnectNodeInput(engine.mainMixerNode)
 
-            resetAudioLoop()
+            //resetAudioLoop()
             needsAudioLoopReset = false
 
             // The app is done with the unit; release all references.
@@ -209,7 +215,7 @@ public class SimplePlayEngine {
             completion()
         }
 
-        let hardwareFormat = engine.outputNode.outputFormat(forBus: 0)
+        var hardwareFormat = engine.inputNode.outputFormat(forBus: 0)
 
         // Connect the main mixer to the output node
         engine.connect(engine.mainMixerNode, to: engine.outputNode, format: hardwareFormat)
@@ -237,7 +243,7 @@ public class SimplePlayEngine {
         // Attach the AVAudioUnit to the graph.
         engine.attach(avAudioUnit)
 
-        if isEffect {
+        /*if isEffect {
             // Disconnect the player from the mixer.
             engine.disconnectNodeInput(engine.mainMixerNode)
 
@@ -249,7 +255,10 @@ public class SimplePlayEngine {
         } else {
             let stereoFormat = AVAudioFormat(standardFormatWithSampleRate: hardwareFormat.sampleRate, channels: 2)
             engine.connect(avAudioUnit, to: engine.mainMixerNode, format: stereoFormat)
-        }
+        }*/
+        engine.connect(avAudioUnit, to: engine.mainMixerNode, format: hardwareFormat);
+        //engine.connect(avAudioUnit, to: engine.outputNode, format: hardwareFormat);
+        //engine.connect(activeAVAudioUnit!, to: engine.outputNode, format: hardwareFormat)
         rewiringComplete()
     }
 

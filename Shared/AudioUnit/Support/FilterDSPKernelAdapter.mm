@@ -26,7 +26,7 @@ The adapter object that provides a Swift-accessible interface to the filter's un
         };
         FillOutASBDForLPCM (desc, FilterDSPKernel::sampleRate, 1, 32, 32, true, false, false);
         AVAudioFormat *formatin = [[AVAudioFormat alloc] initWithStreamDescription:&desc];
-        AVAudioFormat *formatout = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:FilterDSPKernel::sampleRateout channels:1];
+        AVAudioFormat *formatout = formatin;//[[AVAudioFormat alloc] initStandardFormatWithSampleRate:FilterDSPKernel::sampleRateout channels:1];
         // Create a DSP kernel to handle the signal processing.
         printf ("channelc %u, samplerate %f\n", formatin.channelCount, formatin.sampleRate);
         _kernel.init(formatin.channelCount, formatin.sampleRate);
