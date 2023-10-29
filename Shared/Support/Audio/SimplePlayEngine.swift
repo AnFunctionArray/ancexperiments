@@ -108,14 +108,15 @@ public class SimplePlayEngine {
         // Assumptions: stateChangeQueue is protecting the app. The app isn't playing.
         setSessionActive(true)
         
-        if isEffect {
+        /*if isEffect {
             // Schedule buffers on the player.
             scheduleEffectLoop()
             scheduleEffectLoop()
-        }
+        }*/
         
-        let hardwareFormat = engine.outputNode.outputFormat(forBus: 0)
+        let hardwareFormat = engine.inputNode.outputFormat(forBus: 0)
         engine.connect(engine.mainMixerNode, to: engine.outputNode, format: hardwareFormat)
+        engine.connect(engine.inputNode, to: engine.mainMixerNode, format: hardwareFormat)
         
         // Start the engine.
         do {

@@ -15,20 +15,27 @@ The adapter object that provides a Swift-accessible interface to the filter's un
     // C++ members need to be ivars; they would be copied on access if they were properties.
     FilterDSPKernel  _kernel;
     BufferedInputBus _inputBus;
+    DSPSplitComplex t;
 }
 
 - (instancetype)init {
 
     if (self = [super init]) {
-        AVAudioFormat *format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100 channels:2];
+        AudioStreamBasicDescription desc = {
+            
+        };
+        FillOutASBDForLPCM (desc, FilterDSPKernel::sampleRate, 1, 32, 32, true, false, false);
+        AVAudioFormat *formatin = [[AVAudioFormat alloc] initWithStreamDescription:&desc];
+        AVAudioFormat *formatout = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:FilterDSPKernel::sampleRateout channels:1];
         // Create a DSP kernel to handle the signal processing.
-        _kernel.init(format.channelCount, format.sampleRate);
+        printf ("channelc %u, samplerate %f\n", formatin.channelCount, formatin.sampleRate);
+        _kernel.init(formatin.channelCount, formatin.sampleRate);
         _kernel.setParameter(FilterParamCutoff, 0);
         _kernel.setParameter(FilterParamResonance, 0);
 
         // Create the input and output busses.
-        _inputBus.init(format, 8);
-        _outputBus = [[AUAudioUnitBus alloc] initWithFormat:format error:nil];
+        _inputBus.init(formatin, 8);
+        _outputBus = [[AUAudioUnitBus alloc] initWithFormat:formatout error:nil];
     }
     return self;
 }
@@ -68,9 +75,9 @@ The adapter object that provides a Swift-accessible interface to the filter's un
     return _kernel.maximumFramesToRender();
 }
 
-- (void)setMaximumFramesToRender:(AUAudioFrameCount)maximumFramesToRender {
+/*- (void)setMaximumFramesToRender:(AUAudioFrameCount)maximumFramesToRender {
     _kernel.setMaximumFramesToRender(maximumFramesToRender);
-}
+}*/
 
 - (BOOL)shouldBypassEffect {
     return _kernel.isBypassed();
@@ -82,7 +89,8 @@ The adapter object that provides a Swift-accessible interface to the filter's un
 
 - (void)allocateRenderResources {
     _inputBus.allocateRenderResources(self.maximumFramesToRender);
-    _kernel.init(self.outputBus.format.channelCount, self.outputBus.format.sampleRate);
+    printf ("relocating with cc %u, fsmpr %f\n", self.inputBus.format.channelCount, self.inputBus.format.sampleRate);
+    _kernel.init(self.inputBus.format.channelCount, self.outputBus.format.sampleRate);
     _kernel.reset();
 }
 
@@ -111,9 +119,9 @@ The adapter object that provides a Swift-accessible interface to the filter's un
 
         AudioUnitRenderActionFlags pullFlags = 0;
 
-        if (frameCount > state->maximumFramesToRender()) {
+        /*if (frameCount > state->maximumFramesToRender()) {
             return kAudioUnitErr_TooManyFramesToProcess;
-        }
+        }*/
 
         AUAudioUnitStatus err = input->pullInput(&pullFlags, timestamp, frameCount, 0, pullInputBlock);
 

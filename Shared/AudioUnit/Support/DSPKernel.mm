@@ -51,6 +51,10 @@ void DSPKernel::processWithEvents(AudioTimeStamp const *timestamp, AUAudioFrameC
     AUEventSampleTime now = AUEventSampleTime(timestamp->mSampleTime);
     AUAudioFrameCount framesRemaining = frameCount;
     AURenderEvent const *event = events;
+    
+    process(framesRemaining, 0);
+    
+    return;
 
     while (framesRemaining > 0) {
         // If there are no more events, process the entire remaining segment and exit.

@@ -10,6 +10,9 @@ A DSPKernel subclass that implements the real-time signal processing portion of 
 #import "DSPKernel.hpp"
 #import "ParameterRamper.hpp"
 #import <vector>
+#include <os/log.h>
+#import <Accelerate/Accelerate.h>
+#import <vecLib/vDSP.h>
 
 static inline float convertBadValuesToZero(float x) {
     /*
@@ -135,12 +138,11 @@ public:
 
     // MARK: Member Functions
 
-    FilterDSPKernel() : cutoffRamper(400.0 / 44100.0), resonanceRamper(20.0)  {}
+    FilterDSPKernel() : cutoffRamper(400.0 / sampleRate), resonanceRamper(20.0)  {}
 
     void init(int channelCount, double inSampleRate) {
         channelStates.resize(channelCount);
-
-        sampleRate = float(inSampleRate);
+        //sampleRate = float(inSampleRate);
         nyquist = 0.5 * sampleRate;
         inverseNyquist = 1.0 / nyquist;
         dezipperRampDuration = (AUAudioFrameCount)floor(0.02 * sampleRate);
@@ -210,19 +212,32 @@ public:
     }
 
     void process(AUAudioFrameCount frameCount, AUAudioFrameCount bufferOffset) override {
-        if (bypassed) {
+        if (bypassed, true) {
             // Pass the samples through.
-            int channelCount = int(channelStates.size());
-            for (int channel = 0; channel < channelCount; ++channel) {
-                if (inBufferListPtr->mBuffers[channel].mData ==  outBufferListPtr->mBuffers[channel].mData) {
+            int channelCount = int(inBufferListPtr->mNumberBuffers);
+            //os_log(OS_LOG_DEFAULT, "nchannels %d, framecount %u", channelCount, frameCount);
+            for (int channel = 0; channel < 2; ++channel) {
+                /*if (inBufferListPtr->mBuffers[channel].mData ==  outBufferListPtr->mBuffers[channel].mData) {
                     continue;
-                }
-                for (int frameIndex = 0; frameIndex < frameCount; ++frameIndex) {
+                }*/
+                float* in  = (float*)inBufferListPtr->mBuffers[channel].mData;
+                float* out = (float*)outBufferListPtr->mBuffers[channel].mData;
+                /*for (int frameIndex = 0; frameIndex < frameCount; ++frameIndex) {
                     int frameOffset = int(frameIndex + bufferOffset);
                     float* in  = (float*)inBufferListPtr->mBuffers[channel].mData  + frameOffset;
                     float* out = (float*)outBufferListPtr->mBuffers[channel].mData + frameOffset;
                     *out = *in;
-                }
+                }*/
+                if (!ffs[channel])
+                ffs[channel] = vDSP_DFT_Interleaved_CreateSetup (ffs[channel], 128, vDSP_DFT_INVERSE, vDSP_DFT_Interleaved_RealtoComplex);
+                /*dct[channel] = vDSP_DCT_CreateSetup(dct[channel], 128, vDSP_DCT_II);
+                vDSP_DCT_Execute(dct[channel], in, out);
+                const float tresh = 100.0;
+                vDSP_vthres(out, 1, &tresh, in, 1, 128);
+                dctin[channel] = vDSP_DCT_CreateSetup(dctin[channel], 128, vDSP_DCT_III);
+                vDSP_DCT_Execute(dctin[channel], in, out);
+                outBufferListPtr->mBuffers[channel].mDataByteSize = 128 * 4;*/
+                vDSP_DFT_Interleaved_Execute(ffs[channel], (DSPComplex *)in, (DSPComplex *)out);
             }
             return;
         }
@@ -271,8 +286,6 @@ public:
 private:
     std::vector<FilterState> channelStates;
     BiquadCoefficients coeffs;
-
-    float sampleRate = 44100.0;
     float nyquist = 0.5 * sampleRate;
     float inverseNyquist = 1.0 / nyquist;
     AUAudioFrameCount dezipperRampDuration;
@@ -281,9 +294,14 @@ private:
     AudioBufferList* outBufferListPtr = nullptr;
 
     bool bypassed = false;
-
+    
+    vDSP_DFT_Interleaved_Setup ffs[2] ={};
+    vDSP_DFT_Setup dct[2] = {};
+    vDSP_DFT_Setup dctin[2] = {};
+    unsigned counter = 0;
 public:
-
+    static constexpr float sampleRate = 96000;
+    static constexpr float sampleRateout = 96000;
     // Parameters.
     ParameterRamper cutoffRamper;
     ParameterRamper resonanceRamper;

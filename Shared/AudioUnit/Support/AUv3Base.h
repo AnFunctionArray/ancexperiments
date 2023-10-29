@@ -7,7 +7,7 @@ A base class to allow for pure Objective-C++ access to realtime DSP code.
 
 
 #import <AudioToolbox/AudioToolbox.h>
-#import "FilterDSPKernelAdapter.h"
+#import <AUv3FilterFramework/FilterDSPKernelAdapter.h>
 
 NS_ASSUME_NONNULL_BEGIN
 

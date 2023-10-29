@@ -31,15 +31,13 @@ public:
         return maxFramesToRender;
     }
 
-    void setMaximumFramesToRender(const AUAudioFrameCount &maxFrames) {
+    /*void setMaximumFramesToRender(const AUAudioFrameCount &maxFrames) {
         maxFramesToRender = maxFrames;
-    }
-
+    }*/
+    static constexpr AUAudioFrameCount maxFramesToRender = 1024;
 private:
     void handleOneEvent(AURenderEvent const* event);
     void performAllSimultaneousEvents(AUEventSampleTime now, AURenderEvent const*& event, AUMIDIOutputEventBlock midiOut);
-
-    AUAudioFrameCount maxFramesToRender = 512;
 };
 
 #endif /* DSPKernel_h */
